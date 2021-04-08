@@ -30,6 +30,8 @@ def main():
     schema = get_schema_from_parquet(parquet_path_file)
     schema = get_schema_from_parquet_2(parquet_path_file)
 
+    # TODO 0 change the dataset, the dataset chosen in the beginning its not a good dataset to train ml models
+
     # TODO 1 move all code to DAGs
     # TODO 2 send parquet schema to bucket
     # TODO 3 send parquet data to bucket (another)
