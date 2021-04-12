@@ -141,7 +141,7 @@ def load_schema_to_bucket():
     gcp_credentials, project_id = build_gcp_credentials(SECRET_JSON) ## creating credentials object
     storage_client = build_storage_client(gcp_credentials, project_id) ## building storage client
 
-    load_to_bucket(storage_client, SCHEMA_BUCKET, SCHEMA_FILE)
+    load_to_bucket(storage_client, SCHEMA_BUCKET, SCHEMA_NAME)
 
 load_schema_to_bucket() ## 3 dag
 
@@ -149,7 +149,7 @@ def load_parquet_to_bucket():
     gcp_credentials, project_id = build_gcp_credentials(SECRET_JSON) ## creating credentials object
     storage_client = build_storage_client(gcp_credentials, project_id) ## building storage client
 
-    load_to_bucket(storage_client, PARQUET_BUCKET, PARQUET_FILE)
+    load_to_bucket(storage_client, PARQUET_BUCKET, PARQUET_NAME)
 
 load_parquet_to_bucket() ## 4 dag
 
