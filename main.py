@@ -1,45 +1,79 @@
+import json
+
+import kaggle
+
 import pandas as pd
+
+import pyarrow.parquet as pq
 
 from pyarrow.parquet import ParquetFile
 
-import pyarrow.parquet as pq
+# from google.cloud import bigquery
+
+# from google.oauth2 import service_account
+
+## Hint: starting airflow
+## $ airflow initdb
+## $ airflow webserver
+
+## constant
+DATA_PATH = 'Z:\\Code\\stdy\\DE\\rex\\rex_challenge\\data' # export - it cant be this path, only /home/airflow/rex/data
+DATASET_FILE = 'healthcare-dataset-stroke-data.csv'
+PARQUET_FILE = 'healthcare-dataset-stroke-data.parquet'
+SECRET_JSON = 'beto-cloud-4a0aaf7a011b.json'
+
+def build_gcp_client(secret_json):
+    with open(secret_json) as f:
+        gcp_settings = json.load(f)
+
+    project_id = gcp_settings['project_id']
+    gcp_credentials = service_account.Credentials.from_service_account_info(gcp_settings)
+
+    bq_client = bigquery.Client(project=project_id, credentials=gcp_credentials)
+    return bq_client
 
 def load_csv_data(csv_path_file):
     df = pd.read_csv(csv_path_file)
     return df
 
-def transform_to_parquet(df, parquet_path_file):
-    parquet = df.to_parquet(parquet_path_file)
-    return parquet
-
 def get_schema_from_parquet(parquet_path_file):
     pfile = pq.read_table(parquet_path_file)
-    for each in pfile.schema:
-        print(each) # TODO create table_schema dictionary and return
-    return 0
+    schema = []
+    for item in pfile.schema:
+        item_schema = {'name': str(item.name), 'type': str(item.type)}
+        schema.append(item_schema)
 
-def main():
-    data_path = "C:\\Users\\Stefano\\Desktop\\b\\rex_challenge\\data\\"
+    return schema
 
-    csv_path_file = data_path + "imdb.csv"
-    df = load_csv_data(csv_path_file)
+def get_data():
+    kaggle.api.authenticate() ## authenticate in kaggle
 
-    parquet_path_file = data_path + "imdb.parquet"
-    parquet = transform_to_parquet(df, parquet_path_file)
+    kaggle.api.dataset_download_files('fedesoriano/stroke-prediction-dataset', path=DATA_PATH, unzip=True) ## download the dataset in the DATA_PATH
 
-    schema = get_schema_from_parquet(parquet_path_file) # !Warning update get_schema_from_parquet function
+# get_data() ## 1 dag
 
-    # TODO 0 change the dataset, the dataset chosen in the beginning its not a good dataset to train ml models
+def transform_to_parquet():
+    df = load_csv_data(DATA_PATH + '\\' + DATASET_FILE) ## loads the DATASET_FILE
+    df.to_parquet(DATA_PATH + '\\' + PARQUET_FILE) ## save the PARQUET_FILE
 
-    # TODO 1 move all code to DAGs
-    # TODO 2 send parquet schema to bucket
-    # TODO 3 send parquet data to bucket (another)
-    # TODO 4 get parquet from bucket data ? (or we can get from csv?) and send to BQ
+# transform_to_parquet() ## 2 dag
 
-if __name__ == "__main__":
-    main()
+def load_schema_to_bucket():
+    schema = get_schema_from_parquet(DATA_PATH + '\\' + PARQUET_FILE)
+    ## TODO send schema to GCP bucket
 
+# load_schema_to_bucket() ## 3 dag
 
-## Hint: starting airflow
-## $ airflow initdb
-## $ airflow webserver
+def load_parquet_to_bucket():
+    return 0 
+    ## TODO send parquet to bucket: https://cloud.google.com/bigquery/docs/loading-data-cloud-storage-parquet?hl=pt-br
+
+# load_parquet_to_bucket() ## 4 dag
+
+def load_data_to_bq():
+    bq_client = build_gcp_client(SECRET_JSON)
+    ## send data
+
+# load_data_to_bq() ## 5 dag
+
+## pytest
