@@ -12,12 +12,12 @@ def transform_to_parquet(df, parquet_path_file):
     parquet = df.to_parquet(parquet_path_file)
     return parquet
 
-def get_schema_from_parquet_2(parquet_path_file):
+def get_schema_from_parquet(parquet_path_file):
     pfile = pq.read_table(parquet_path_file)
     for each in pfile.schema:
         print(each) # TODO create table_schema dictionary and return
     return 0
- 
+
 def main():
     data_path = "C:\\Users\\Stefano\\Desktop\\b\\rex_challenge\\data\\"
 
@@ -27,8 +27,7 @@ def main():
     parquet_path_file = data_path + "imdb.parquet"
     parquet = transform_to_parquet(df, parquet_path_file)
 
-    schema = get_schema_from_parquet(parquet_path_file)
-    schema = get_schema_from_parquet_2(parquet_path_file)
+    schema = get_schema_from_parquet(parquet_path_file) # !Warning update get_schema_from_parquet function
 
     # TODO 0 change the dataset, the dataset chosen in the beginning its not a good dataset to train ml models
 
@@ -39,3 +38,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+## Hint: starting airflow
+## $ airflow initdb
+## $ airflow webserver
