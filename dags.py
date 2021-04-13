@@ -1,6 +1,7 @@
 import json
 import kaggle
 import pandas as pd
+from datetime import timedelta
 
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
@@ -11,8 +12,13 @@ from google.auth import credentials
 from google.oauth2 import service_account
 from google.cloud.exceptions import NotFound
 
-## constant
-PATH = '/home/beto' # export - it cant be this path, only /home/airflow/rex/data
+import airflow
+from airflow import DAG
+from airflow.utils.dates import days_ago
+from airflow.operators.python_operator import PythonOperator
+
+## constants
+PATH = '/home/beto'
 DATA_PATH = PATH + '/' + 'data'
 
 DATASET_FILE = DATA_PATH + '/' + 'healthcare-dataset-stroke-data.csv'
@@ -218,6 +224,10 @@ def transform_to_parquet():
     df.to_parquet(PARQUET_FILE) ## save the PARQUET_FILE
 
 def load_schema_to_bucket():
+    '''
+    Dag 3: Load schema to bucket 
+    '''
+
     schema = get_schema_from_parquet(PARQUET_FILE) ## getting schema
     save_dict_as_json(schema, SCHEMA_FILE) ## saving schema to json
 
@@ -227,12 +237,20 @@ def load_schema_to_bucket():
     load_to_bucket(storage_client, SCHEMA_BUCKET, SCHEMA_FILE, SCHEMA_NAME)
 
 def load_parquet_to_bucket():
+    '''
+    Dag 4: Load parquet to bucket 
+    '''
+
     gcp_credentials, project_id = build_gcp_credentials(SECRET_JSON) ## creating credentials object
     storage_client = build_storage_client(gcp_credentials, project_id) ## building storage client
 
     load_to_bucket(storage_client, PARQUET_BUCKET, PARQUET_FILE, PARQUET_NAME)
 
 def load_data_to_bq():
+    '''
+    Dag 5: Load data to BigQuery 
+    '''
+
     gcp_credentials, project_id = build_gcp_credentials(SECRET_JSON)
     bq_client = build_bq_client(gcp_credentials, project_id)
 
@@ -253,16 +271,7 @@ def load_data_to_bq():
         credentials = gcp_credentials,
         if_exists = 'append')
 
-from datetime import timedelta
-
-import airflow
-from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
-from airflow.utils.dates import days_ago
-
-## Hint: starting airflow
-## $ airflow initdb
-## $ airflow webserver
+## Airflow DAG
 
 default_args = {
     'owner': 'lakshay',
@@ -316,11 +325,9 @@ t5 = PythonOperator(
 
 t1 >> t2 >> t3 >> t4 >> t5
 
-# get_data() ## 1 dag
-# transform_to_parquet() ## 2 dag
-# load_schema_to_bucket() ## 3 dag
-# load_parquet_to_bucket() ## 4 dag
-# load_data_to_bq() ## 5 dag
+## Hint: starting airflow
+## $ airflow initdb
+## $ airflow webserver
 
 # TODO: use black library
 # TODO: use isort
