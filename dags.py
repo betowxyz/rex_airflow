@@ -13,7 +13,7 @@ from google.cloud.exceptions import NotFound
 
 ## constant
 PATH = 'Z:\\Code\\stdy\\DE\\rex\\rex_challenge' # export - it cant be this path, only /home/airflow/rex/data
-DATA_PATH = PATH + '\\data'
+DATA_PATH = PATH + '\\' + 'data'
 
 DATASET_FILE = DATA_PATH + '\\' + 'healthcare-dataset-stroke-data.csv'
 
@@ -54,7 +54,7 @@ def build_bq_client(gcp_credentials, project_id):
         project_id: the respective project of GCP
     '''
 
-    bq_client = bigquery.Client(project=project_id, credentials=gcp_credentials)
+    bq_client = bigquery.Client(project = project_id, credentials = gcp_credentials)
     return bq_client
 
 def build_storage_client(gcp_credentials, project_id):
@@ -65,7 +65,7 @@ def build_storage_client(gcp_credentials, project_id):
         project_id: the respective project of GCP
     '''
 
-    storage_client = storage.Client(project=project_id, credentials=gcp_credentials)
+    storage_client = storage.Client(project = project_id, credentials = gcp_credentials)
     return storage_client
 
 def load_csv_data(csv_path_file):
@@ -126,7 +126,7 @@ def create_bq_table(bq_client, bq_schema, table_id):
         table_id: BigQuery table path
     '''
 
-    table = bigquery.Table(table_id, schema=bq_schema)
+    table = bigquery.Table(table_id, schema = bq_schema)
     table = bq_client.create_table(table)
 
 def save_dict_as_json(dict, file_name):
@@ -206,10 +206,7 @@ def get_data():
     '''
 
     kaggle.api.authenticate() ## authenticate in kaggle
-
     kaggle.api.dataset_download_files('fedesoriano/stroke-prediction-dataset', path=DATA_PATH, unzip=True) ## download the dataset in the DATA_PATH
-
-# get_data() ## 1 dag
 
 def transform_to_parquet():
     '''
@@ -218,8 +215,6 @@ def transform_to_parquet():
 
     df = load_csv_data(DATASET_FILE) ## loads the DATASET_FILE
     df.to_parquet(PARQUET_FILE) ## save the PARQUET_FILE
-
-# transform_to_parquet() ## 2 dag
 
 def load_schema_to_bucket():
     schema = get_schema_from_parquet(PARQUET_FILE) ## getting schema
@@ -230,15 +225,11 @@ def load_schema_to_bucket():
 
     load_to_bucket(storage_client, SCHEMA_BUCKET, SCHEMA_FILE, SCHEMA_NAME)
 
-# load_schema_to_bucket() ## 3 dag
-
 def load_parquet_to_bucket():
     gcp_credentials, project_id = build_gcp_credentials(SECRET_JSON) ## creating credentials object
     storage_client = build_storage_client(gcp_credentials, project_id) ## building storage client
 
     load_to_bucket(storage_client, PARQUET_BUCKET, PARQUET_FILE, PARQUET_NAME)
-
-# load_parquet_to_bucket() ## 4 dag
 
 def load_data_to_bq():
     gcp_credentials, project_id = build_gcp_credentials(SECRET_JSON)
@@ -258,28 +249,46 @@ def load_data_to_bq():
     df.to_gbq( ## send data to BQ
         destination_table = BQ_DESTINATION,
         project_id = project_id,
-        credentials=gcp_credentials,
+        credentials = gcp_credentials,
         if_exists = 'append')
 
+get_data() ## 1 dag
+# transform_to_parquet() ## 2 dag
+# load_schema_to_bucket() ## 3 dag
+# load_parquet_to_bucket() ## 4 dag
 # load_data_to_bq() ## 5 dag
 
-# import airflow
-# from airflow import DAG
-# from airflow.operators.bash_operator import BashOperator
-# from datetime import, timedelta
+from datetime import timedelta
 
-# ## Hint: starting airflow
-# ## $ airflow initdb
-# ## $ airflow webserver
+import airflow
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+from airflow.utils.dates import days_ago
 
-# args = {
-#     'owner': 'airflow',
-#     'start_date': airflow.utils.dates.days_ago(2)
-# }
+## Hint: starting airflow
+## $ airflow initdb
+## $ airflow webserver
 
-# dag = DAG(
-#     dag_id='fluxo_simples',
-#     default_args=args,
-#     schedule_interval=timedelta(days=1),
-#     dagrun_timeout=timedelta(minutes=60)
-# )
+default_args = {
+    'owner': 'lakshay',
+    'depends_on_past': False,
+    'start_date': days_ago(2),
+    'retries': 3,
+    'retry_delay': timedelta(minutes=1),
+}
+
+dag = DAG(
+    dag_id = 'get_data',
+    default_args = default_args,
+    schedule_interval = timedelta(days = 1),
+    dagrun_timeout = timedelta(minutes = 60)
+)
+
+t1 = PythonOperator(
+    task_id='get_data',
+    python_callable= get_data,
+    op_kwargs = None,
+    dag=dag,
+)
+
+# t1
