@@ -12,24 +12,25 @@ from google.oauth2 import service_account
 from google.cloud.exceptions import NotFound
 
 ## constant
-PATH = 'Z:\\Code\\stdy\\DE\\rex\\rex_challenge' # export - it cant be this path, only /home/airflow/rex/data
-DATA_PATH = PATH + '\\' + 'data'
+PATH = '/home/beto' # export - it cant be this path, only /home/airflow/rex/data
+DATA_PATH = PATH + '/' + 'data'
 
-DATASET_FILE = DATA_PATH + '\\' + 'healthcare-dataset-stroke-data.csv'
+DATASET_FILE = DATA_PATH + '/' + 'healthcare-dataset-stroke-data.csv'
 
 PARQUET_NAME = 'healthcare-dataset-stroke-data.parquet'
-PARQUET_FILE = DATA_PATH + '\\' + PARQUET_NAME
+PARQUET_FILE = DATA_PATH + '/' + PARQUET_NAME
 PARQUET_BUCKET = 'stroke-parquet'
 
 SCHEMA_NAME = 'schema.json'
-SCHEMA_FILE = DATA_PATH + '\\' + SCHEMA_NAME
+SCHEMA_FILE = DATA_PATH + '/' + SCHEMA_NAME
 SCHEMA_BUCKET = 'stroke-schema'
 
 BQ_DATASET = 'rex_challenge'
 BQ_TABLE = 'stroke_data'
 BQ_DESTINATION = BQ_DATASET + '.' + BQ_TABLE
 
-SECRET_JSON = PATH + '\\' + 'beto-cloud-4a0aaf7a011b.json'
+SECRET_JSON = PATH + '/secret/' + 'beto-cloud-4a0aaf7a011b.json'
+
 
 def build_gcp_credentials(secret_json):
     '''
@@ -252,12 +253,6 @@ def load_data_to_bq():
         credentials = gcp_credentials,
         if_exists = 'append')
 
-get_data() ## 1 dag
-# transform_to_parquet() ## 2 dag
-# load_schema_to_bucket() ## 3 dag
-# load_parquet_to_bucket() ## 4 dag
-# load_data_to_bq() ## 5 dag
-
 from datetime import timedelta
 
 import airflow
@@ -291,4 +286,38 @@ t1 = PythonOperator(
     dag=dag,
 )
 
-# t1
+t2 = PythonOperator(
+    task_id='transform_to_parquet',
+    python_callable= transform_to_parquet,
+    op_kwargs = None,
+    dag=dag,
+)
+
+t3 = PythonOperator(
+    task_id='load_schema_to_bucket',
+    python_callable= load_schema_to_bucket,
+    op_kwargs = None,
+    dag=dag,
+)
+
+t4 = PythonOperator(
+    task_id='load_parquet_to_bucket',
+    python_callable= load_parquet_to_bucket,
+    op_kwargs = None,
+    dag=dag,
+)
+
+t5 = PythonOperator(
+    task_id='load_data_to_bq',
+    python_callable= load_data_to_bq,
+    op_kwargs = None,
+    dag=dag,
+)
+
+t1 >> t2 >> t3 >> t4 >> t5
+
+# get_data() ## 1 dag
+# transform_to_parquet() ## 2 dag
+# load_schema_to_bucket() ## 3 dag
+# load_parquet_to_bucket() ## 4 dag
+# load_data_to_bq() ## 5 dag
