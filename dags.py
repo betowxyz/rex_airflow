@@ -321,3 +321,8 @@ t1 >> t2 >> t3 >> t4 >> t5
 # load_schema_to_bucket() ## 3 dag
 # load_parquet_to_bucket() ## 4 dag
 # load_data_to_bq() ## 5 dag
+
+# TODO: use black library
+# TODO: use isort
+# TODO: use autoflake
+# TODO: use pytest
