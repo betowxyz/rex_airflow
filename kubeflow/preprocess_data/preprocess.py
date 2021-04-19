@@ -63,14 +63,10 @@ def drop_null(df):
     df = df.dropna()
     return df
 
-def one_hot_encoding(df):
+def one_hot_encoding(df, columns_to_one_hot_encode):
     '''
         One hot encoding DataFrame
     '''
-
-    columns_to_one_hot_encode = [
-        'gender', 'ever_married', 'work_type', 'Residence_type', 'smoking_status' 
-    ]
 
     for column in columns_to_one_hot_encode:
         one_hot = pd.get_dummies(df[column])
@@ -79,12 +75,17 @@ def one_hot_encoding(df):
 
     return df
 
-if __name__ == '__main__':
+def _preprocess_data():
     # Get raw data
     storage_client = build_storage_client('beto-cloud')
     raw_data_bucket_name = 'stroke-parquet'
     raw_data_file_name = 'stroke.parquet'
     get_bucket_data(storage_client, raw_data_bucket_name, raw_data_file_name)
+
+    ## columns  to one hot encode
+    columns_to_one_hot_encode = [
+            'gender', 'ever_married', 'work_type', 'Residence_type', 'smoking_status' 
+        ]
 
     # Pre Processment
     df = parquet_to_dataframe(raw_data_file_name)
@@ -93,9 +94,10 @@ if __name__ == '__main__':
     df = normalize_dataframe(df)
 
     # Load train data to train bucket
-    # send to bucket# df.to_parquet('/input/pre_processed.parquet') ## generate parquet_file with pre processed data 
     train_data_bucket_name = 'stroke-train-parquet'
     train_data_file_name = 'stroke_train.parquet'
     load_parquet_to_bucket(storage_client, train_data_bucket_name, train_data_file_name)
 
-    # Create output file to the next kubeflow step, giving bucket name and file name
+if __name__ == '__main__':
+    print('Preprocessing data...')
+    _preprocess_data()
