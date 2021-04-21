@@ -1,0 +1,71 @@
+name: Preprocess
+description: Get GCP raw data, pre process and load to bucket
+implementation:
+  container:
+    image: python:3.8
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas==1.0.3' 'google-cloud-bigquery==2.13.1,' 'google-cloud-bigquery-storage==2.3.0,'
+      'google-cloud-bigtable==1.7.0,' 'google-cloud-container==2.3.1,' 'google-cloud-core==1.6.0,'
+      'google-cloud-dlp==3.0.1,' 'google-cloud-language==2.0.0,' 'google-cloud-secret-manager==2.3.0,'
+      'google-cloud-spanner==3.2.0,' 'google-cloud-speech==2.2.0,' 'google-cloud-storage==1.36.2,'
+      'google-cloud-texttospeech==2.2.0,' 'google-cloud-translate==3.0.2,' 'google-cloud-videointelligence==2.0.0,'
+      'google-cloud-vision==2.2.0,' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m
+      pip install --quiet --no-warn-script-location 'pandas==1.0.3' 'google-cloud-bigquery==2.13.1,'
+      'google-cloud-bigquery-storage==2.3.0,' 'google-cloud-bigtable==1.7.0,' 'google-cloud-container==2.3.1,'
+      'google-cloud-core==1.6.0,' 'google-cloud-dlp==3.0.1,' 'google-cloud-language==2.0.0,'
+      'google-cloud-secret-manager==2.3.0,' 'google-cloud-spanner==3.2.0,' 'google-cloud-speech==2.2.0,'
+      'google-cloud-storage==1.36.2,' 'google-cloud-texttospeech==2.2.0,' 'google-cloud-translate==3.0.2,'
+      'google-cloud-videointelligence==2.0.0,' 'google-cloud-vision==2.2.0,' --user)
+      && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - "def preprocess():\n    '''\n        Get GCP raw data, pre process and load\
+      \ to bucket\n    '''\n\n    import pandas as pd\n    from sklearn import preprocessing\n\
+      \n    from google.cloud import bigquery, storage\n\n    def build_storage_client(project_id):\n\
+      \        \"\"\"\n        Build Storage client to perform requests to GCP buckets\n\
+      \        Params:\n            project_id: the respective project of GCP\n  \
+      \      \"\"\"\n\n        # step.apply(gcp.use_gcp_secret('user-gcp-sa')) in\
+      \ the dsl.ContainerOP()\n        storage_client = storage.Client(project_id)\n\
+      \        return storage_client\n\n    def load_parquet_to_bucket(storage_client,\
+      \ bucket_name, file_name):\n        \"\"\"\n            Load file to GCP bucket\n\
+      \        \"\"\"\n\n        bucket = storage_client.get_bucket(bucket_name)\n\
+      \        blob = bucket.blob(file_name)\n        with open(file_name, \"rb\"\
+      ) as f:\n            blob.upload_from_file(f)\n\n    def normalize_dataframe(df):\n\
+      \        '''\n            Receive a DataFrame and normalize using min max scaler\
+      \ (scikit)\n        '''\n\n        x = df.values\n        column_names = list(df.columns)\n\
+      \        min_max_scaler = preprocessing.MinMaxScaler()\n        x_scaled = min_max_scaler.fit_transform(x)\n\
+      \        df_normalized = pd.DataFrame(x_scaled, column_names)\n\n        return\
+      \ df_normalized\n\n    def get_bucket_data(storage_client, bucket_name, file_name):\n\
+      \        '''\n            Get file from bucket and save locally\n        '''\n\
+      \n        bucket = storage_client.get_bucket(bucket_name)\n        blob = bucket.blob(file_name)\n\
+      \        blob.download_to_filename(file_name)\n\n    def parquet_to_dataframe(file_name):\n\
+      \        '''\n            Read parquet file as DataFrame object\n        '''\n\
+      \n        df = pd.read_parquet(file_name, engine='pyarrow')\n        return\
+      \ df\n\n    def drop_null(df):\n        '''\n            Drop Null rows of given\
+      \ DataFrame\n        '''\n\n        df = df.dropna()\n        return df\n\n\
+      \    def one_hot_encoding(df, columns_to_one_hot_encode):\n        '''\n   \
+      \         One hot encoding DataFrame\n        '''\n\n        for column in columns_to_one_hot_encode:\n\
+      \            one_hot = pd.get_dummies(df[column])\n            df = df.drop(column,\
+      \ axis = 1)\n            df = df.join(one_hot)\n\n        return df\n\n    def\
+      \ _preprocess_data():\n\n        # Get raw data\n        storage_client = build_storage_client('beto-cloud')\n\
+      \        raw_data_bucket_name = 'stroke-parquet'\n        raw_data_file_name\
+      \ = 'stroke.parquet'\n        get_bucket_data(storage_client, raw_data_bucket_name,\
+      \ raw_data_file_name)\n\n        ## columns  to one hot encode\n        columns_to_one_hot_encode\
+      \ = [\n                'gender', 'ever_married', 'work_type', 'Residence_type',\
+      \ 'smoking_status' \n            ]\n\n        # Pre Processment\n        df\
+      \ = parquet_to_dataframe(raw_data_file_name)\n        df = drop_null(df)\n \
+      \       df = one_hot_encoding(df)\n        df = normalize_dataframe(df)\n\n\
+      \        # Load train data to train bucket\n        train_data_bucket_name =\
+      \ 'stroke-train-parquet'\n        train_data_file_name = 'stroke_train.parquet'\n\
+      \        load_parquet_to_bucket(storage_client, train_data_bucket_name, train_data_file_name)\n\
+      \nimport argparse\n_parser = argparse.ArgumentParser(prog='Preprocess', description='Get\
+      \ GCP raw data, pre process and load to bucket')\n_parsed_args = vars(_parser.parse_args())\n\
+      \n_outputs = preprocess(**_parsed_args)\n"
+    args: []

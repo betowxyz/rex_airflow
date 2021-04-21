@@ -4,6 +4,6 @@ WORKDIR /app
 
 RUN pip install -U scikit-learn pandas
 
-COPY train.py ./train.py
+COPY preprocess.py ./preprocess.py
 
-ENTRYPOINT [ "python", "pre_processment.py" ]
+ENTRYPOINT [ "python", "preprocess.py" ]
