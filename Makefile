@@ -34,13 +34,6 @@ setup:
 	. $(VENV_NAME)/bin/activate
 	pip install -r $(REQUIREMENTS_LOCAL)
 
-# DOCKER
-
-docker:
-	docker-compose up postgres
-	docker-compose up initdb
-	docker-compose -f docker-compose.yml up
-
 # DEVELOPMENT
 
 define create-venv
@@ -60,10 +53,11 @@ clean:
 	@rm -rf .tox
 
 # PYTHON CODE FORMAT
+# Use venv python instead of python3
 
 isort:
 	python3 -m isort --version
-	python3 -m isort	 dags.py
+	python3 -m isort dags.py
 
 autoflake_check:
 	python3 -m autoflake --version

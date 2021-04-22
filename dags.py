@@ -1,3 +1,4 @@
+import os
 import json
 from datetime import timedelta
 
@@ -11,9 +12,10 @@ from google.cloud import bigquery, storage
 from google.cloud.exceptions import NotFound
 from google.oauth2 import service_account
 
+
 ## constants
-PATH = "/home/beto"
-DATA_PATH = PATH + "/" + "data"
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = ROOT_DIR + "/" + "data"
 
 DATASET_FILE = DATA_PATH + "/" + "healthcare-dataset-stroke-data.csv"
 
@@ -29,7 +31,7 @@ BQ_DATASET = "rex_challenge"
 BQ_TABLE = "stroke_data"
 BQ_DESTINATION = BQ_DATASET + "." + BQ_TABLE
 
-SECRET_JSON = PATH + "/secret/" + "beto-cloud-4a0aaf7a011b.json"
+SECRET_JSON = ROOT_DIR + "/secret/" + "beto-cloud.json"
 
 
 def build_gcp_credentials(secret_json):
