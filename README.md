@@ -6,3 +6,7 @@
 1. Save parquet in another bucket
 1. Create and load data in BigQuery dataset
 1. Include tests
+
+## ToDo
+
+1. Include Tests
